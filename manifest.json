@@ -1,0 +1,20 @@
+{
+  "name": "UniSchedule — Расписание ФИиИТ",
+  "short_name": "ФИиИТ",
+  "description": "Клиентское PWA для парсинга и отображения вузовского расписания занятий ФИиИТ",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#070a13",
+  "theme_color": "#06b6d4",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity", "utilities"]
+}

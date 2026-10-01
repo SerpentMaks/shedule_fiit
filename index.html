@@ -25,7 +25,7 @@
   <div class="ambient-glow-1"></div>
   <div class="ambient-glow-2"></div>
 
-  <!-- ФИКСИРОВАННАЯ ШАПКА (HEADER) — Оптимизирована для iPhone и десктопа -->
+  <!-- ФИКСИРОВАННАЯ ШАПКА (HEADER) — Максимально разгруженная: только ➕, Недели и ☰ -->
   <header class="header-glass">
     <div class="header-left">
       <!-- Кнопка "+" загрузки нового файла Excel -->
@@ -33,11 +33,6 @@
         <span>➕</span>
       </button>
       <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
-
-      <!-- Кнопка "🔄" смены курса и группы -->
-      <button class="btn-icon" id="btnChangeGroup" title="Выбрать курс и группу">
-        <span>🔄</span>
-      </button>
     </div>
 
     <!-- По центру: Segmented Control [ 1 Неделя | 2 Неделя ] -->
@@ -147,25 +142,23 @@
 
   <!-- ОСНОВНОЙ КОНТЕНТНЫЙ БЛОК -->
   <main class="main-wrapper">
-    <!-- Информационный баннер текущей группы и времени -->
+    <!-- Информационный баннер текущей группы со счетчиком следующей пары -->
     <div class="hero-banner">
       <div class="hero-left">
-        <div class="badge-group" id="currentGroupBadge" title="Нажмите, чтобы сменить группу">
-          <span id="displayCourseName">3 КУРС</span>
+        <!-- Клик по названию группы открывает выбор курса и группы -->
+        <div class="badge-group" id="currentGroupBadge" title="Нажмите, чтобы сменить курс и группу">
+          <span id="displayCourseName">4 КУРС</span>
           <span>•</span>
           <span id="displayGroupName">РПИС</span>
           <span style="font-size: 11px; opacity: 0.8;">▼</span>
         </div>
-        <div class="badge-week-status" id="weekStatusBadge">
-          <span>🗓️</span>
-          <span id="displayWeekType">Сейчас: 1 Неделя</span>
-        </div>
       </div>
 
       <div class="hero-right">
-        <div class="live-clock">
+        <!-- Счетчик статуса пар / следующей пары перенесен сюда вместо часов -->
+        <div class="live-status-pill" id="livePairStatusContainer">
           <span class="pulse-dot"></span>
-          <span id="liveClockDisplay">00:00:00</span>
+          <span id="livePairStatusText">Определение расписания...</span>
         </div>
       </div>
     </div>
@@ -179,9 +172,6 @@
             <span id="todayHeaderDay">Сегодня</span>
           </h2>
           <span class="section-subtitle" id="todayHeaderDate">Загрузка даты...</span>
-        </div>
-        <div class="badge-meta" id="livePairStatusBadge">
-          <span id="livePairStatusText">Определение расписания...</span>
         </div>
       </div>
 
@@ -302,7 +292,7 @@
       </div>
 
       <div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--glass-border-subtle); display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 12px; color: var(--text-muted);">UniSchedule v1.6 • ФИиИТ</span>
+        <span style="font-size: 12px; color: var(--text-muted);">UniSchedule v1.7 • ФИиИТ</span>
         <button class="btn-action-sheet cancel" id="btnClearStorage" style="width: auto; padding: 6px 12px; font-size: 12px;">
           Сбросить кеш
         </button>

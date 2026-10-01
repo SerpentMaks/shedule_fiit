@@ -145,7 +145,7 @@ html, body {
 }
 
 /* =====================================================================
-   ФИКСИРОВАННАЯ ШАПКА (HEADER) — ОПТИМИЗИРОВАНА ПОД iOS / IPHONE
+   ФИКСИРОВАННАЯ ШАПКА (HEADER) — БЕЗОПАСНЫЙ ОТСТУП ДЛЯ IPHONE / NOTCH
    ===================================================================== */
 .header-glass {
   position: fixed;
@@ -153,11 +153,11 @@ html, body {
   left: 0;
   right: 0;
   height: auto;
-  min-height: calc(56px + env(safe-area-inset-top, 0px));
-  padding-top: max(env(safe-area-inset-top, 0px), 14px);
+  /* Запас под Dynamic Island и статус-бар iOS */
+  padding-top: max(calc(env(safe-area-inset-top, 0px) + 14px), 24px);
   padding-bottom: 12px;
-  padding-left: 16px;
-  padding-right: 16px;
+  padding-left: 20px;
+  padding-right: 20px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -167,7 +167,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   transition: background var(--transition-smooth), border var(--transition-smooth);
 }
 
@@ -183,7 +183,7 @@ html, body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  max-width: 320px;
+  max-width: 280px;
   min-width: 170px;
 }
 
@@ -330,7 +330,7 @@ html, body {
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  padding: calc(68px + env(safe-area-inset-top, 0px)) 16px 24px 16px;
+  padding: calc(72px + env(safe-area-inset-top, 0px)) 16px 24px 16px;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-smooth);
@@ -354,7 +354,7 @@ html, body {
   transform: translateY(-14px) scale(0.96);
   transform-origin: top right;
   transition: all var(--transition-smooth);
-  max-height: calc(100vh - 100px - env(safe-area-inset-top, 0px));
+  max-height: calc(100vh - 120px - env(safe-area-inset-top, 0px));
   overflow-y: auto;
 }
 
@@ -499,34 +499,33 @@ html, body {
   z-index: 1;
   max-width: 1280px;
   margin: 0 auto;
-  padding-top: calc(88px + env(safe-area-inset-top, 0px));
+  padding-top: calc(96px + env(safe-area-inset-top, 0px));
   padding-left: 20px;
   padding-right: 20px;
   padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px));
 }
 
-/* Информационный баннер группы и времени */
+/* Информационный баннер группы и счетчика следующей пары */
 .hero-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 28px;
+  gap: 14px;
+  margin-bottom: 26px;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  padding: 18px 24px;
+  padding: 16px 22px;
   box-shadow: var(--glass-shadow);
 }
 
 .hero-left {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .badge-group {
@@ -551,32 +550,25 @@ html, body {
   box-shadow: 0 0 24px var(--cyan-glow);
 }
 
-.badge-week-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-full);
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
 .hero-right {
   display: flex;
   align-items: center;
-  gap: 16px;
 }
 
-.live-clock {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  display: flex;
+/* Плашка счетчика пар / следующей пары */
+.live-status-pill {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-main);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 .pulse-dot {
@@ -586,6 +578,7 @@ html, body {
   background: var(--emerald-primary);
   box-shadow: 0 0 10px var(--emerald-primary);
   animation: pulse-ring 2s infinite;
+  flex-shrink: 0;
 }
 
 @keyframes pulse-ring {
@@ -599,22 +592,23 @@ html, body {
    ===================================================================== */
 .section-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
 }
 
 .section-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.4px;
   display: flex;
   align-items: center;
   gap: 10px;
+  line-height: 1.2;
 }
 
 .section-subtitle {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--text-muted);
 }
@@ -662,7 +656,7 @@ html, body {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
 }
 
-/* Активная или следующая пара */
+/* Активная пара */
 .pair-card.is-active {
   border-color: var(--cyan-primary);
   box-shadow: 0 0 28px var(--cyan-glow), var(--glass-shadow);
@@ -734,9 +728,7 @@ html, body {
   margin-top: 2px;
 }
 
-/* =====================================================================
-   УВЕЛИЧЕННЫЕ ШРИФТЫ ДЛЯ ИНФОРМАЦИИ О ПАРЕ (ТИП, ПРЕПОДАВАТЕЛЬ, АУДИТОРИЯ)
-   ===================================================================== */
+/* Увеличенные шрифты для метаданных пары */
 .badge-type {
   font-size: 13px;
   font-weight: 700;
@@ -766,7 +758,6 @@ html, body {
   color: #6ee7b7;
 }
 
-/* Бейджи аудитории и преподавателя */
 .badge-meta {
   display: inline-flex;
   align-items: center;
@@ -1303,15 +1294,15 @@ html, body {
 }
 
 /* =====================================================================
-   АДАПТИВНОСТЬ (RESPONSIVE)
+   АДАПТИВНОСТЬ ПОД МОБИЛЬНЫЕ УСТРОЙСТВА И IPHONE
    ===================================================================== */
 @media (max-width: 768px) {
   .header-glass {
-    min-height: calc(52px + env(safe-area-inset-top, 0px));
-    padding-top: max(env(safe-area-inset-top, 0px), 12px);
-    padding-bottom: 10px;
-    padding-left: 12px;
-    padding-right: 12px;
+    /* Щедрый верхний отступ, исключающий наложение на статус-бар и Dynamic Island */
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 20px), 56px);
+    padding-bottom: 14px;
+    padding-left: 14px;
+    padding-right: 14px;
     gap: 8px;
   }
 
@@ -1320,13 +1311,15 @@ html, body {
   }
 
   .btn-icon {
-    width: 38px;
-    height: 38px;
-    font-size: 17px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
   }
 
   .segmented-control {
     padding: 2px;
+    max-width: 220px;
+    min-width: 160px;
   }
 
   .segmented-option {
@@ -1335,10 +1328,31 @@ html, body {
   }
 
   .main-wrapper {
-    padding-top: calc(76px + env(safe-area-inset-top, 0px));
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 120px), 130px);
     padding-left: 14px;
     padding-right: 14px;
     padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .hero-banner {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .hero-left, .hero-right {
+    width: 100%;
+  }
+
+  .badge-group {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .live-status-pill {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .pairs-grid {
@@ -1349,17 +1363,6 @@ html, body {
   .pair-card {
     padding: 18px;
     gap: 12px;
-  }
-
-  .hero-banner {
-    padding: 14px 16px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .hero-right {
-    width: 100%;
-    justify-content: space-between;
   }
 
   .subgroups-container {
@@ -1375,6 +1378,6 @@ html, body {
   }
 
   .menu-backdrop {
-    padding-top: calc(60px + env(safe-area-inset-top, 0px));
+    padding-top: max(calc(env(safe-area-inset-top, 0px) + 115px), 125px);
   }
 }

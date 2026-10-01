@@ -19,8 +19,8 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   // Состояние приложения
   const AppState = {
     scheduleData: null,
-    selectedCourse: '1 КУРС',
-    selectedGroup: 'ИСИП',
+    selectedCourse: '4 КУРС',
+    selectedGroup: 'РПИС',
     activeWeek: '1неделя', // '1неделя' или '2неделя'
     theme: 'dark',
     settings: {
@@ -62,7 +62,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
           AppState.selectedGroup = savedGroup;
         } else {
           const firstGroup = Object.keys(AppState.scheduleData.courses[savedCourse].groups)[0];
-          AppState.selectedGroup = firstGroup || 'ИСИП';
+          AppState.selectedGroup = firstGroup || 'РПИС';
         }
       } else {
         const firstCourse = Object.keys(AppState.scheduleData.courses)[0] || '1 КУРС';
@@ -76,8 +76,8 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     } catch (e) {
       console.warn('Ошибка загрузки данных из LocalStorage, используются дефолтные значения:', e);
       AppState.scheduleData = DEFAULT_SCHEDULE;
-      AppState.selectedCourse = '1 КУРС';
-      AppState.selectedGroup = 'ИСИП';
+      AppState.selectedCourse = '4 КУРС';
+      AppState.selectedGroup = 'РПИС';
       AppState.activeWeek = '1неделя';
     }
   }
@@ -156,20 +156,15 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     4. ЧАСЫ И ТЕКУЩИЙ ДЕНЬ
+     4. ТЕКУЩИЙ ДЕНЬ И ВРЕМЯ
      ===================================================================== */
 
-  function startLiveClock() {
-    const clockEl = document.getElementById('liveClockDisplay');
-    function updateClock() {
-      const now = new Date();
-      if (clockEl) {
-        clockEl.textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      }
+  function startLiveStatusUpdater() {
+    function update() {
       updateLivePairStatus();
     }
-    updateClock();
-    setInterval(updateClock, 1000);
+    update();
+    setInterval(update, 10000); // Обновление каждые 10 секунд
   }
 
   function getTodayRussianInfo() {
@@ -205,7 +200,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     6. ОПРЕДЕЛЕНИЕ СТАТУСА ПАР (ЖИВОЙ ИНДИКАТОР)
+     6. ОПРЕДЕЛЕНИЕ СТАТУСА ПАР (СЧЕТЧИК СЛЕДУЮЩЕЙ ПАРЫ)
      ===================================================================== */
 
   const PAIR_TIMES = [
@@ -261,22 +256,22 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     }
 
     if (currentActivePairNum) {
-      statusTextEl.textContent = `🟢 Сейчас идёт пара №${currentActivePairNum}`;
+      statusTextEl.textContent = `Сейчас идёт пара №${currentActivePairNum}`;
     } else if (nextPair) {
       const h = Math.floor(nextPair.diff / 60);
       const m = nextPair.diff % 60;
       const timeRemaining = h > 0 ? `${h} ч ${m} мин` : `${m} мин`;
-      statusTextEl.textContent = `⏳ След. пара №${nextPair.num} через ${timeRemaining} (${nextPair.start})`;
+      statusTextEl.textContent = `След. пара №${nextPair.num} через ${timeRemaining} (${nextPair.start})`;
     } else {
       const lastPairEnd = parseTimeMinutes(PAIR_TIMES[PAIR_TIMES.length - 1].end);
       if (currentMinutes > lastPairEnd) {
-        statusTextEl.textContent = '🏁 Все пары на сегодня завершены';
+        statusTextEl.textContent = 'Все пары на сегодня завершены';
       } else {
-        statusTextEl.textContent = '☕ Перерыв между занятиями';
+        statusTextEl.textContent = 'Перерыв между занятиями';
       }
     }
 
-    // Подсветка карточек
+    // Подсветка активной карточки
     document.querySelectorAll('.pair-card').forEach(card => {
       const pNum = parseInt(card.dataset.pairNum, 10);
       if (pNum === currentActivePairNum) {
@@ -288,7 +283,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     7. РЕНДЕРИНГ КАРТОЧЕК ПАР (ГЕНЕРАТОР HTML С УВЕЛИЧЕННЫМИ ШРИФТАМИ)
+     7. РЕНДЕРИНГ КАРТОЧЕК ПАР
      ===================================================================== */
 
   function renderPairCard(pair) {
@@ -301,7 +296,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     let contentHtml = '';
 
     if (!hasMultipleSubgroups && subgroups.length <= 1) {
-      // Одиночное занятие
       const s = subgroups[0] || { subject: pair.rawText, type: '', teacher: '', room: '' };
       
       let typeBadge = '';
@@ -325,7 +319,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
         </div>
       `;
     } else {
-      // Деление на 1 и 2 подгруппы: параллельные аккуратные плашки
       let sg1 = subgroups.find(sg => sg.subGroupNum === 1) || subgroups[0];
       let sg2 = subgroups.find(sg => sg.subGroupNum === 2) || subgroups[1];
 
@@ -425,7 +418,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       return;
     }
 
-    // Показываем пары начиная с фактического номера (например, Пара 2), без смещения нумерации
     container.innerHTML = todayPairs.map(p => renderPairCard(p)).join('');
     updateLivePairStatus();
   }
@@ -466,7 +458,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
           <div class="day-accordion-header" onclick="window.App.toggleDayAccordion('${d}')">
             <div class="day-header-left">
               <span class="day-name">${d}</span>
-              ${isToday ? '<span class="badge-meta" style="color: var(--cyan-primary); border-color: var(--cyan-primary); font-size: 11px; padding: 2px 8px;">Сегодня</span>' : ''}}
+              ${isToday ? '<span class="badge-meta" style="color: var(--cyan-primary); border-color: var(--cyan-primary); font-size: 11px; padding: 2px 8px;">Сегодня</span>' : ''}
               <span class="day-count-badge">${dayPairs.length} ${getPairsDeclension(dayPairs.length)}</span>
             </div>
             <span class="day-arrow-icon">▼</span>
@@ -521,16 +513,10 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   function renderHeaderAndBanner() {
     const courseEl = document.getElementById('displayCourseName');
     const groupEl = document.getElementById('displayGroupName');
-    const weekStatusEl = document.getElementById('displayWeekType');
     const segmentedControl = document.getElementById('weekSegmentedControl');
 
     if (courseEl) courseEl.textContent = AppState.selectedCourse;
     if (groupEl) groupEl.textContent = AppState.selectedGroup;
-
-    const isWeek1 = AppState.activeWeek === '1неделя';
-    if (weekStatusEl) {
-      weekStatusEl.textContent = `Сейчас: ${isWeek1 ? '1 Неделя (Нечетная)' : '2 Неделя (Четная)'}`;
-    }
 
     if (segmentedControl) {
       segmentedControl.setAttribute('data-selected', AppState.activeWeek);
@@ -582,7 +568,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
 
     if (!coursesGrid || !groupsGrid) return;
 
-    // Отрисовка кнопок курсов
     const availableCourses = Object.keys(AppState.scheduleData.courses);
     if (availableCourses.length > 0) {
       coursesGrid.innerHTML = availableCourses.map(c => `
@@ -763,7 +748,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
 
-        // Парсинг через parser.js
         const parsedResult = ScheduleParser.parseWorkbook(workbook);
 
         if (!parsedResult || !parsedResult.courses || Object.keys(parsedResult.courses).length === 0) {
@@ -809,7 +793,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     try {
       const wb = XLSX.utils.book_new();
 
-      // Генерируем листы для обеих недель
       for (const weekKey of ['1неделя', '2неделя']) {
         const sheetTitle = weekKey === '1неделя' ? '1 Неделя' : '2 Неделя';
         const rows = [
@@ -877,12 +860,10 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-      // Подключаем кириллический шрифт в VFS
       doc.addFileToVFS('DejaVuSans.ttf', CYRILLIC_FONT_B64);
       doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
       doc.setFont('DejaVuSans');
 
-      // Шапка документа
       doc.setFontSize(16);
       doc.setTextColor(30, 27, 75);
       doc.text('Факультет Информатики и Информационных Технологий (ФИиИТ)', 14, 16);
@@ -1005,10 +986,8 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       fileInput.onchange = handleFileInputChange;
     }
 
-    // Кнопка смены группы (🔄 и плашка в баннере)
-    const btnChangeGroup = document.getElementById('btnChangeGroup');
+    // Клик по плашке группы в баннере открывает выбор курса и группы
     const badgeGroup = document.getElementById('currentGroupBadge');
-    if (btnChangeGroup) btnChangeGroup.onclick = openCourseGroupModal;
     if (badgeGroup) badgeGroup.onclick = openCourseGroupModal;
 
     // Гамбургер меню ("три полоски")
@@ -1125,7 +1104,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     loadState();
     applyTheme(AppState.theme);
     setupEventListeners();
-    startLiveClock();
+    startLiveStatusUpdater();
     renderAll();
     registerPWA();
   }

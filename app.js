@@ -1,7 +1,7 @@
 /**
  * app.js — Логика UI, управление состоянием, LocalStorage, PWA, экспорт
- * Включает автоматический расчет четности недель, аккордеон, модальные окна,
- * экспорт в Excel (SheetJS) и PDF (jsPDF + AutoTable) с поддержкой кириллицы.
+ * Включает автоматический расчет четности недель, аккордеон, выпадающее меню,
+ * модальные окна, экспорт в Excel (SheetJS) и PDF (jsPDF + AutoTable) с поддержкой кириллицы.
  */
 
 // Базовый шрифт с поддержкой кириллицы для jsPDF
@@ -100,9 +100,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
      2. АВТОМАТИЧЕСКИЙ РАСЧЕТ ЧЕТНОСТИ НЕДЕЛИ
      ===================================================================== */
 
-  /**
-   * Получение даты понедельника для заданной даты
-   */
   function getMonday(d) {
     const date = new Date(d);
     const day = date.getDay();
@@ -112,12 +109,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     return mon;
   }
 
-  /**
-   * Математический расчет номера текущей недели
-   * @param {string} baseDateStr Дата в формате "YYYY-MM-DD"
-   * @param {number} baseWeekNum Номер недели на базовую дату (1 или 2)
-   * @returns {string} "1неделя" или "2неделя"
-   */
   function calculateCurrentWeek(baseDateStr, baseWeekNum) {
     try {
       const baseDate = new Date(baseDateStr);
@@ -145,9 +136,15 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   function applyTheme(theme) {
     AppState.theme = theme;
     document.documentElement.setAttribute('data-theme', theme);
-    const themeIcon = document.getElementById('themeIcon');
-    if (themeIcon) {
-      themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+    
+    // Обновляем бейджи в меню
+    const menuThemeBadge = document.getElementById('menuThemeBadge');
+    const menuThemeIcon = document.getElementById('menuThemeIcon');
+    if (menuThemeBadge) {
+      menuThemeBadge.textContent = theme === 'dark' ? 'Тёмная' : 'Светлая';
+    }
+    if (menuThemeIcon) {
+      menuThemeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
     }
     saveState();
   }
@@ -231,7 +228,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
 
     const { dayName, isSunday } = getTodayRussianInfo();
     if (isSunday) {
-      statusTextEl.textContent = 'Сегодня воскресенье • Выходной день';
+      statusTextEl.textContent = 'Воскресенье • Выходной день';
       return;
     }
 
@@ -251,7 +248,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       const startMin = parseTimeMinutes(pt.start);
       const endMin = parseTimeMinutes(pt.end);
 
-      // Проверяем, есть ли эта пара в сегодняшнем расписании
       const hasPair = todayPairs.some(p => p.pairNum === pt.num);
 
       if (currentMinutes >= startMin && currentMinutes <= endMin) {
@@ -292,7 +288,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     7. РЕНДЕРИНГ КАРТОЧЕК ПАР (ГЕНЕРАТОР HTML)
+     7. РЕНДЕРИНГ КАРТОЧЕК ПАР (ГЕНЕРАТОР HTML С УВЕЛИЧЕННЫМИ ШРИФТАМИ)
      ===================================================================== */
 
   function renderPairCard(pair) {
@@ -300,7 +296,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     const time = pair.time || (PAIR_TIMES.find(t => t.num === pNum)?.start + ' - ' + PAIR_TIMES.find(t => t.num === pNum)?.end) || '';
     const subgroups = pair.subgroups || [];
 
-    // Определяем, есть ли деление на подгруппы
     const hasMultipleSubgroups = subgroups.length > 1 || (subgroups.length === 1 && subgroups[0].subGroupNum !== null);
 
     let contentHtml = '';
@@ -348,11 +343,11 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
         if (sgItem.type) {
           const typeClass = sgItem.type === 'лек' ? 'lec' : (sgItem.type === 'лаб' ? 'lab' : 'prac');
           const typeLabel = sgItem.type === 'лек' ? 'Лек' : (sgItem.type === 'лаб' ? 'Лаб' : 'Пр');
-          tBadge = `<span class="badge-type ${typeClass}" style="font-size: 10px; padding: 2px 6px;">${typeLabel}</span>`;
+          tBadge = `<span class="badge-type ${typeClass}">${typeLabel}</span>`;
         }
 
-        let tTeacher = sgItem.teacher ? `<span class="badge-meta" style="font-size: 11px; padding: 2px 6px;">👨‍🏫 ${sgItem.teacher}</span>` : '';
-        let tRoom = sgItem.room ? `<span class="badge-meta room" style="font-size: 11px; padding: 2px 6px;">🚪 ${sgItem.room}</span>` : '';
+        let tTeacher = sgItem.teacher ? `<span class="badge-meta">👨‍🏫 ${sgItem.teacher}</span>` : '';
+        let tRoom = sgItem.room ? `<span class="badge-meta room">🚪 ${sgItem.room}</span>` : '';
 
         return `
           <div class="subgroup-column ${colClass}">
@@ -361,7 +356,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
               ${tBadge}
             </div>
             <div class="subgroup-subject">${sgItem.subject}</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto;">
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto;">
               ${tTeacher}
               ${tRoom}
             </div>
@@ -430,8 +425,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       return;
     }
 
-    // Спецификация 2.3: Если первых пар нет, показывать карточки начиная с фактического номера ("Пара 2"),
-    // не перенумеровывая их. В конце дня пустые карточки НЕ выводить.
+    // Показываем пары начиная с фактического номера (например, Пара 2), без смещения нумерации
     container.innerHTML = todayPairs.map(p => renderPairCard(p)).join('');
     updateLivePairStatus();
   }
@@ -472,7 +466,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
           <div class="day-accordion-header" onclick="window.App.toggleDayAccordion('${d}')">
             <div class="day-header-left">
               <span class="day-name">${d}</span>
-              ${isToday ? '<span class="badge-meta" style="color: var(--cyan-primary); border-color: var(--cyan-primary); font-size: 11px; padding: 2px 8px;">Сегодня</span>' : ''}
+              ${isToday ? '<span class="badge-meta" style="color: var(--cyan-primary); border-color: var(--cyan-primary); font-size: 11px; padding: 2px 8px;">Сегодня</span>' : ''}}
               <span class="day-count-badge">${dayPairs.length} ${getPairsDeclension(dayPairs.length)}</span>
             </div>
             <span class="day-arrow-icon">▼</span>
@@ -558,10 +552,25 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     11. МОДАЛЬНОЕ ОКНО ВЫБОРА КУРСА И ГРУППЫ
+     11. ВЫПАДАЮЩЕЕ МЕНЮ (3 ПОЛОСКИ)
+     ===================================================================== */
+
+  function openMenu() {
+    const menu = document.getElementById('menuBackdrop');
+    if (menu) menu.classList.add('active');
+  }
+
+  function closeMenu() {
+    const menu = document.getElementById('menuBackdrop');
+    if (menu) menu.classList.remove('active');
+  }
+
+  /* =====================================================================
+     12. МОДАЛЬНОЕ ОКНО ВЫБОРА КУРСА И ГРУППЫ
      ===================================================================== */
 
   function openCourseGroupModal() {
+    closeMenu();
     renderCourseGroupModal();
     openModal('courseGroupModal');
   }
@@ -634,10 +643,11 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     12. МОДАЛЬНОЕ ОКНО "СЕГОДНЯ"
+     13. МОДАЛЬНОЕ ОКНО "СЕГОДНЯ"
      ===================================================================== */
 
   function openTodayModal() {
+    closeMenu();
     const modalContent = document.getElementById('modalTodayContent');
     const modalTitle = document.getElementById('modalTodayTitle');
     const { dayName, formattedDate, isSunday } = getTodayRussianInfo();
@@ -675,10 +685,11 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     13. МОДАЛЬНОЕ ОКНО "НАСТРОЙКИ"
+     14. МОДАЛЬНОЕ ОКНО "НАСТРОЙКИ"
      ===================================================================== */
 
   function openSettingsModal() {
+    closeMenu();
     const baseDateInput = document.getElementById('settingBaseDate');
     const baseWeekSelect = document.getElementById('settingBaseWeek');
     const autoCalcEl = document.getElementById('settingAutoCalcResult');
@@ -716,7 +727,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     14. УНИВЕРСАЛЬНОЕ УПРАВЛЕНИЕ МОДАЛКАМИ
+     15. УНИВЕРСАЛЬНОЕ УПРАВЛЕНИЕ МОДАЛКАМИ
      ===================================================================== */
 
   function openModal(modalId) {
@@ -736,13 +747,14 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     15. ОБРАБОТКА ЗАГРУЗКИ EXCEL-ФАЙЛА
+     16. ОБРАБОТКА ЗАГРУЗКИ EXCEL-ФАЙЛА
      ===================================================================== */
 
   function handleFileInputChange(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
+    closeMenu();
     showToast('Чтение файла Excel...', '⏳');
 
     const reader = new FileReader();
@@ -760,7 +772,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
 
         AppState.scheduleData = parsedResult;
 
-        // Обновляем курс и группу на первый доступный
         const firstCourse = Object.keys(parsedResult.courses)[0];
         AppState.selectedCourse = firstCourse;
         const firstGroup = Object.keys(parsedResult.courses[firstCourse].groups)[0];
@@ -770,7 +781,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
         renderAll();
         showToast('Расписание успешно загружено!', '🎉');
 
-        // Открываем модалку для подтверждения группы
         openCourseGroupModal();
       } catch (err) {
         console.error('Ошибка парсинга:', err);
@@ -789,11 +799,11 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     16. ЭКСПОРТ В EXCEL (.xlsx)
+     17. ЭКСПОРТ В EXCEL (.xlsx)
      ===================================================================== */
 
   function exportScheduleToExcel() {
-    closeModal('exportActionSheetBackdrop');
+    closeMenu();
     showToast('Формирование таблицы Excel...', '📊');
 
     try {
@@ -832,16 +842,15 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
 
         const ws = XLSX.utils.aoa_to_sheet(rows);
 
-        // Настройка ширины колонок
         ws['!cols'] = [
-          { wch: 14 }, // День недели
-          { wch: 8 },  // № пары
-          { wch: 14 }, // Время
-          { wch: 10 }, // Подгруппа
-          { wch: 32 }, // Дисциплина
-          { wch: 12 }, // Тип
-          { wch: 22 }, // Преподаватель
-          { wch: 12 }  // Аудитория
+          { wch: 14 },
+          { wch: 8 },
+          { wch: 14 },
+          { wch: 10 },
+          { wch: 32 },
+          { wch: 12 },
+          { wch: 22 },
+          { wch: 12 }
         ];
 
         XLSX.utils.book_append_sheet(wb, ws, sheetTitle);
@@ -857,11 +866,11 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     17. ЭКСПОРТ В PDF (.pdf) С КИРИЛЛИЦЕЙ
+     18. ЭКСПОРТ В PDF (.pdf) С КИРИЛЛИЦЕЙ
      ===================================================================== */
 
   function exportScheduleToPdf() {
-    closeModal('exportActionSheetBackdrop');
+    closeMenu();
     showToast('Формирование документа PDF...', '📄');
 
     try {
@@ -884,7 +893,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       doc.setFontSize(10);
       doc.text(`Текущая неделя: ${AppState.activeWeek === '1неделя' ? '1 Неделя (Нечетная)' : '2 Неделя (Четная)'}`, 14, 29);
 
-      // Формируем строки для AutoTable
       const tableRows = [];
       for (const day of DAYS_LIST) {
         const pairs = getPairsFor(day, AppState.activeWeek);
@@ -899,7 +907,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
               const sg = subgroups[idx];
               const sgLabel = sg.subGroupNum ? `${sg.subGroupNum} п/г` : 'Общая';
               tableRows.push([
-                idx === 0 ? day : '', // Не дублируем название дня на каждой строке
+                idx === 0 ? day : '',
                 `№${p.pairNum}`,
                 p.time,
                 sgLabel,
@@ -953,7 +961,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     18. TOAST УВЕДОМЛЕНИЯ
+     19. TOAST УВЕДОМЛЕНИЯ
      ===================================================================== */
 
   function showToast(message, icon = 'ℹ️') {
@@ -974,14 +982,10 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     19. НАСТРОЙКА ОБРАБОТЧИКОВ СОБЫТИЙ (EVENT LISTENERS)
+     20. НАСТРОЙКА ОБРАБОТЧИКОВ СОБЫТИЙ (EVENT LISTENERS)
      ===================================================================== */
 
   function setupEventListeners() {
-    // Тумблер темы
-    const btnTheme = document.getElementById('btnThemeToggle');
-    if (btnTheme) btnTheme.onclick = toggleTheme;
-
     // Segmented control (переключатель недель)
     const segmented = document.getElementById('weekSegmentedControl');
     if (segmented) {
@@ -993,7 +997,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       });
     }
 
-    // Кнопка загрузки файла
+    // Кнопка загрузки файла в шапке
     const btnUpload = document.getElementById('btnUploadFile');
     const fileInput = document.getElementById('excelFileInput');
     if (btnUpload && fileInput) {
@@ -1007,19 +1011,55 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     if (btnChangeGroup) btnChangeGroup.onclick = openCourseGroupModal;
     if (badgeGroup) badgeGroup.onclick = openCourseGroupModal;
 
+    // Гамбургер меню ("три полоски")
+    const btnMenuToggle = document.getElementById('btnMenuToggle');
+    const menuBackdrop = document.getElementById('menuBackdrop');
+    const btnCloseMenu = document.getElementById('btnCloseMenu');
+
+    if (btnMenuToggle) btnMenuToggle.onclick = openMenu;
+    if (btnCloseMenu) btnCloseMenu.onclick = closeMenu;
+    if (menuBackdrop) {
+      menuBackdrop.onclick = (e) => {
+        if (e.target === menuBackdrop) closeMenu();
+      };
+    }
+
+    // Пункты выпадающего меню
+    const menuItemToday = document.getElementById('menuItemToday');
+    if (menuItemToday) menuItemToday.onclick = openTodayModal;
+
+    const menuItemExcel = document.getElementById('menuItemExcel');
+    if (menuItemExcel) menuItemExcel.onclick = exportScheduleToExcel;
+
+    const menuItemPdf = document.getElementById('menuItemPdf');
+    if (menuItemPdf) menuItemPdf.onclick = exportScheduleToPdf;
+
+    const menuItemTheme = document.getElementById('menuItemTheme');
+    if (menuItemTheme) menuItemTheme.onclick = toggleTheme;
+
+    const menuItemSettings = document.getElementById('menuItemSettings');
+    if (menuItemSettings) menuItemSettings.onclick = openSettingsModal;
+
+    const menuItemChangeGroup = document.getElementById('menuItemChangeGroup');
+    if (menuItemChangeGroup) menuItemChangeGroup.onclick = openCourseGroupModal;
+
+    const menuItemUpload = document.getElementById('menuItemUpload');
+    if (menuItemUpload && fileInput) {
+      menuItemUpload.onclick = () => {
+        closeMenu();
+        fileInput.click();
+      };
+    }
+
     // Кнопка закрытия модалки выбора группы
     const btnCloseGroup = document.getElementById('btnCloseGroupModal');
     if (btnCloseGroup) btnCloseGroup.onclick = () => closeModal('courseGroupModal');
 
-    // Кнопка "Сегодня"
-    const btnToday = document.getElementById('btnTodayModal');
-    if (btnToday) btnToday.onclick = openTodayModal;
+    // Кнопка закрытия модалки Сегодня
     const btnCloseToday = document.getElementById('btnCloseTodayModal');
     if (btnCloseToday) btnCloseToday.onclick = () => closeModal('todayModal');
 
-    // Кнопка "⚙️" Настройки
-    const btnSettings = document.getElementById('btnSettings');
-    if (btnSettings) btnSettings.onclick = openSettingsModal;
+    // Кнопки модалки Настройки
     const btnCloseSettings = document.getElementById('btnCloseSettingsModal');
     if (btnCloseSettings) btnCloseSettings.onclick = () => closeModal('settingsModal');
     const btnSaveSet = document.getElementById('btnSaveSettings');
@@ -1052,29 +1092,6 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     const btnToggleWeek = document.getElementById('btnToggleAllWeek');
     if (btnToggleWeek) btnToggleWeek.onclick = toggleAllWeek;
 
-    // FAB и Action Sheet скачивания
-    const fabDownload = document.getElementById('fabDownload');
-    const actionSheetBackdrop = document.getElementById('exportActionSheetBackdrop');
-    const btnCancelExport = document.getElementById('btnCancelExport');
-
-    if (fabDownload && actionSheetBackdrop) {
-      fabDownload.onclick = () => actionSheetBackdrop.classList.add('active');
-    }
-    if (btnCancelExport && actionSheetBackdrop) {
-      btnCancelExport.onclick = () => actionSheetBackdrop.classList.remove('active');
-    }
-    if (actionSheetBackdrop) {
-      actionSheetBackdrop.onclick = (e) => {
-        if (e.target === actionSheetBackdrop) actionSheetBackdrop.classList.remove('active');
-      };
-    }
-
-    const btnExcel = document.getElementById('btnExportExcel');
-    if (btnExcel) btnExcel.onclick = exportScheduleToExcel;
-
-    const btnPdf = document.getElementById('btnExportPdf');
-    if (btnPdf) btnPdf.onclick = exportScheduleToPdf;
-
     // Закрытие модалок по клику на фон
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
       backdrop.onclick = (e) => {
@@ -1087,21 +1104,21 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   }
 
   /* =====================================================================
-     20. РЕГИСТРАЦИЯ PWA SERVICE WORKER
+     21. РЕГИСТРАЦИЯ PWA SERVICE WORKER
      ===================================================================== */
 
   function registerPWA() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('Service Worker зарегистрирован успешно:', reg.scope))
+          .then(reg => console.log('Service Worker зарегистрирован:', reg.scope))
           .catch(err => console.log('Ошибка регистрации Service Worker:', err));
       });
     }
   }
 
   /* =====================================================================
-     21. СТАРТ ПРИЛОЖЕНИЯ
+     22. СТАРТ ПРИЛОЖЕНИЯ
      ===================================================================== */
 
   function init() {
@@ -1118,7 +1135,9 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     toggleDayAccordion,
     openCourseGroupModal,
     openTodayModal,
-    openSettingsModal
+    openSettingsModal,
+    openMenu,
+    closeMenu
   };
 
   document.addEventListener('DOMContentLoaded', init);

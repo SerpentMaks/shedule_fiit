@@ -4,7 +4,7 @@
  * для 100% офлайн-доступа к расписанию занятий.
  */
 
-const CACHE_NAME = 'unischedule-fiiit-v1.5';
+const CACHE_NAME = 'unischedule-fiiit-v1.6';
 
 const STATIC_ASSETS = [
   './',
@@ -49,7 +49,6 @@ self.addEventListener('activate', (event) => {
 
 // Перехват сетевых запросов: Cache-First с сетевым фолбэком
 self.addEventListener('fetch', (event) => {
-  // Игнорируем неподдерживаемые схемы (например, chrome-extension://)
   if (!event.request.url.startsWith('http')) return;
 
   event.respondWith(
@@ -60,7 +59,6 @@ self.addEventListener('fetch', (event) => {
 
       return fetch(event.request)
         .then((networkResponse) => {
-          // Если ответ валидный, сохраняем копию в кеш
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -70,7 +68,6 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // Если сеть недоступна и ресурса нет в кеше, для HTML-запросов возвращаем index.html
           if (event.request.headers.get('accept')?.includes('text/html')) {
             return caches.match('./index.html');
           }

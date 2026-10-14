@@ -1,77 +1,41 @@
-/**
- * sw.js — Service Worker для PWA UniSchedule ФИиИТ
- * Обеспечивает кеширование локальных ресурсов и CDN-библиотек (SheetJS, jsPDF)
- * для 100% офлайн-доступа к расписанию занятий.
- */
-
-const CACHE_NAME = 'unischedule-fiiit-v1.6';
-
+/* Versioned offline bundle. Only this app's old caches are removed. */
+const CACHE_NAME = 'unischedule-fiiit-planner-v2.0';
 const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './styles.css',
-  './parser.js',
-  './app.js',
-  './manifest.json',
-  './icon.svg',
-  'https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'
+  './', './index.html', './styles.css', './parser.js', './app.js',
+  './manifest.json', './icon.svg', './fonts/golos.css',
+  './vendor/xlsx.full.min.js', './vendor/jspdf.umd.min.js',
+  './vendor/jspdf.plugin.autotable.min.js'
 ];
-
-// Установка: кеширование статических файлов
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Прекеширование статических ресурсов и CDN...');
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW] Не удалось прекешировать некоторые ресурсы:', err);
-      });
-    }).then(() => self.skipWaiting())
-  );
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(STATIC_ASSETS);
+    const css = await (await cache.match('./fonts/golos.css')).text();
+    const fonts = [...css.matchAll(/url\(([^)]+)\)/g)].map(match => new URL(match[1].replace(/["']/g, ''), new URL('./fonts/', self.location.href)).href);
+    await cache.addAll([...new Set(fonts)]);
+    await self.skipWaiting();
+  })());
 });
-
-// Активация: очистка старых версий кеша
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[SW] Удаление устаревшего кеша:', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key.startsWith('unischedule-fiiit-') && key !== CACHE_NAME).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
-
-// Перехват сетевых запросов: Cache-First с сетевым фолбэком
-self.addEventListener('fetch', (event) => {
-  if (!event.request.url.startsWith('http')) return;
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('./index.html');
-          }
-        });
-    })
-  );
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET' || new URL(event.request.url).origin !== self.location.origin) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const cached = await cache.match(event.request);
+    if (cached) return cached;
+    try {
+      const response = await fetch(event.request);
+      if (response.ok) await cache.put(event.request, response.clone());
+      return response;
+    } catch (error) {
+      if (event.request.mode === 'navigate') return await cache.match('./index.html');
+      return Response.error();
+    }
+  })());
 });

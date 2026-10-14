@@ -3,308 +3,116 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>UniSchedule • Расписание ФИиИТ</title>
-
-  <!-- PWA & iOS Meta Tags -->
+  <meta name="theme-color" content="#101a2b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Расписание ФИиИТ">
-  <meta name="theme-color" content="#070a13">
+  <meta name="apple-mobile-web-app-title" content="UniSchedule">
+  <title>UniSchedule — Расписание ФИиИТ</title>
   <link rel="manifest" href="manifest.json">
-
-  <!-- Внешние библиотеки строго через CDN -->
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
-  <!-- Стили приложения -->
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="fonts/golos.css">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    try {
+      const theme = localStorage.getItem('fiiit_theme');
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch (_) {}
+  </script>
+  <script src="vendor/xlsx.full.min.js" defer></script>
+  <script src="vendor/jspdf.umd.min.js" defer></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js" defer></script>
+  <script src="parser.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
-  <!-- Декоративные световые ореолы (Ambient Glow) -->
-  <div class="ambient-glow-1"></div>
-  <div class="ambient-glow-2"></div>
-
-  <!-- ФИКСИРОВАННАЯ ШАПКА (HEADER) — Максимально разгруженная: только ➕, Недели и ☰ -->
-  <header class="header-glass">
-    <div class="header-left">
-      <!-- Кнопка "+" загрузки нового файла Excel -->
-      <button class="btn-icon" id="btnUploadFile" title="Загрузить Excel файл (.xlsx)">
-        <span>➕</span>
-      </button>
-      <input type="file" id="excelFileInput" accept=".xlsx, .xls" style="display: none;">
-    </div>
-
-    <!-- По центру: Segmented Control [ 1 Неделя | 2 Неделя ] -->
-    <div class="header-center">
-      <div class="segmented-control" id="weekSegmentedControl" data-selected="1неделя">
-        <button class="segmented-option active" data-week="1неделя">1 Неделя</button>
-        <button class="segmented-option" data-week="2неделя">2 Неделя</button>
-        <div class="segmented-slider"></div>
+  <a class="skip-link" href="#scheduleContent">Перейти к расписанию</a>
+  <header class="app-header">
+    <div class="header-inner">
+      <button class="btn-icon mobile-menu" id="btnMenuToggle" title="Открыть меню" aria-label="Открыть меню" aria-haspopup="dialog" aria-expanded="false"><span data-icon="menu"></span></button>
+      <a class="brand" href="./index.html" aria-label="UniSchedule — главная">
+        <span class="brand-icon" data-icon="calendar"></span>
+        <span class="brand-title">UniSchedule</span><span class="brand-subtitle">ФИиИТ ДГУ</span>
+      </a>
+      <div class="header-actions">
+        <button class="btn-toolbar" id="btnUploadFile"><span data-icon="upload"></span><span>Загрузить Excel</span></button>
+        <button class="btn-toolbar" id="btnExport" aria-haspopup="dialog" aria-expanded="false"><span data-icon="download"></span><span>Экспорт</span></button>
+        <button class="btn-icon" id="btnThemeToggle" title="Включить светлую тему" aria-label="Включить светлую тему"><span data-icon="sun"></span></button>
+        <button class="btn-icon" id="btnSettings" title="Настройки семестра" aria-label="Настройки семестра"><span data-icon="settings"></span></button>
       </div>
-    </div>
-
-    <div class="header-right">
-      <!-- Кнопка Меню (3 полоски — Hamburger) -->
-      <button class="btn-icon btn-hamburger" id="btnMenuToggle" title="Открыть меню">
-        <span class="hamburger-icon">☰</span>
-      </button>
+      <input type="file" id="excelFileInput" accept=".xlsx,.xls" hidden>
     </div>
   </header>
-
-  <!-- ВЫПАДАЮЩЕЕ МЕНЮ ("ТРИ ПОЛОСКИ") -->
-  <div class="menu-backdrop" id="menuBackdrop">
-    <div class="menu-dropdown" id="menuDropdown">
-      <div class="menu-header">
-        <div class="menu-title-wrap">
-          <div class="brand-icon" style="width: 32px; height: 32px; font-size: 16px;">🎓</div>
-          <div>
-            <div class="menu-title">UniSchedule</div>
-            <div class="menu-subtitle">ФИиИТ ДГУ</div>
-          </div>
-        </div>
-        <button class="btn-close-modal" id="btnCloseMenu" title="Закрыть">&times;</button>
-      </div>
-
-      <div class="menu-items">
-        <!-- 1. Расписание на сегодня -->
-        <button class="menu-item" id="menuItemToday">
-          <span class="menu-item-icon">📅</span>
-          <div class="menu-item-text">
-            <div class="menu-item-title">Расписание на сегодня</div>
-            <div class="menu-item-desc">Просмотр сегодняшних занятий</div>
-          </div>
-        </button>
-
-        <div class="menu-divider"></div>
-        <div class="menu-section-label">Экспорт расписания</div>
-
-        <!-- 2. Скачать Excel -->
-        <button class="menu-item" id="menuItemExcel">
-          <span class="menu-item-icon" style="color: #10b981;">📊</span>
-          <div class="menu-item-text">
-            <div class="menu-item-title">Скачать Excel (.xlsx)</div>
-            <div class="menu-item-desc">Чистая таблица для группы</div>
-          </div>
-        </button>
-
-        <!-- 3. Скачать PDF -->
-        <button class="menu-item" id="menuItemPdf">
-          <span class="menu-item-icon" style="color: #f43f5e;">📄</span>
-          <div class="menu-item-text">
-            <div class="menu-item-title">Скачать PDF (.pdf)</div>
-            <div class="menu-item-desc">Печатная версия с AutoTable</div>
-          </div>
-        </button>
-
-        <div class="menu-divider"></div>
-        <div class="menu-section-label">Управление и вид</div>
-
-        <!-- 4. Тема оформления (Sun / Moon) -->
-        <button class="menu-item" id="menuItemTheme">
-          <span class="menu-item-icon" id="menuThemeIcon">☀️</span>
-          <div class="menu-item-text">
-            <div class="menu-item-title">Тема оформления</div>
-            <div class="menu-item-desc" id="menuThemeDesc">Переключить светлую/тёмную</div>
-          </div>
-          <span class="menu-badge-pill" id="menuThemeBadge">Тёмная</span>
-        </button>
-
-        <!-- 5. Настройки недели -->
-        <button class="menu-item" id="menuItemSettings">
-          <span class="menu-item-icon">⚙️</span>
-          <div class="menu-item-text">
-            <div class="menu-item-title">Настройки семестра</div>
-            <div class="menu-item-desc">Опорная дата и расчет недели</div>
-          </div>
-        </button>
-
-        <!-- 6. Сменить курс / группу -->
-        <button class="menu-item" id="menuItemChangeGroup">
-          <span class="menu-item-icon">🔄</span>
-          <div class="menu-item-text">
-            <div class="menu-item-title">Выбрать курс и группу</div>
-            <div class="menu-item-desc">Сменить специальность</div>
-          </div>
-        </button>
-
-        <!-- 7. Загрузить Excel -->
-        <button class="menu-item" id="menuItemUpload">
-          <span class="menu-item-icon">➕</span>
-          <div class="menu-item-text">
-            <div class="menu-item-title">Загрузить новый .xlsx</div>
-            <div class="menu-item-desc">Импорт файла расписания</div>
-          </div>
-        </button>
+  <main class="main-wrapper" id="scheduleContent" tabindex="-1">
+    <div class="schedule-toolbar">
+      <h1>Расписание</h1>
+      <button class="group-selector" id="currentGroupBadge" aria-label="Выбрать курс и группу" aria-haspopup="dialog"><span class="group-label"><span id="displayCourseName">4 курс</span><span class="group-separator">/</span><span id="displayGroupName">РПИС</span></span><span data-icon="down"></span></button>
+      <div class="segmented-control" id="weekSegmentedControl" role="group" aria-label="Неделя расписания">
+        <button class="segmented-option active" data-week="1неделя" aria-pressed="true">1 неделя</button>
+        <button class="segmented-option" data-week="2неделя" aria-pressed="false">2 неделя</button>
       </div>
     </div>
-  </div>
-
-  <!-- ОСНОВНОЙ КОНТЕНТНЫЙ БЛОК -->
-  <main class="main-wrapper">
-    <!-- Информационный баннер текущей группы со счетчиком следующей пары -->
-    <div class="hero-banner">
-      <div class="hero-left">
-        <!-- Клик по названию группы открывает выбор курса и группы -->
-        <div class="badge-group" id="currentGroupBadge" title="Нажмите, чтобы сменить курс и группу">
-          <span id="displayCourseName">4 КУРС</span>
-          <span>•</span>
-          <span id="displayGroupName">РПИС</span>
-          <span style="font-size: 11px; opacity: 0.8;">▼</span>
-        </div>
-      </div>
-
-      <div class="hero-right">
-        <!-- Счетчик статуса пар / следующей пары перенесен сюда вместо часов -->
-        <div class="live-status-pill" id="livePairStatusContainer">
-          <span class="pulse-dot"></span>
-          <span id="livePairStatusText">Определение расписания...</span>
-        </div>
-      </div>
+    <nav class="mobile-days" id="mobileDays" aria-label="Дни недели"></nav>
+    <div class="schedule-layout">
+      <section class="day-section" aria-labelledby="todayHeaderDay">
+        <div class="section-header"><div><h2 id="todayHeaderDay">Сегодня</h2><p class="section-subtitle" id="todayHeaderDate"></p></div><button class="btn-text" id="btnBackToday" hidden>Сегодня</button></div>
+        <div id="nextLessonContainer" aria-live="polite" aria-atomic="true"></div>
+        <div class="pairs-grid" id="todayPairsContainer"></div>
+        <p class="day-end-info" id="dayEndInfo"></p>
+      </section>
+      <aside class="week-section" aria-labelledby="weekHeading">
+        <div class="section-header"><h2 id="weekHeading">Вся неделя</h2></div>
+        <div class="accordion-days-wrapper" id="accordionDaysWrapper"></div>
+        <button class="btn-accordion-toggle" id="btnToggleAllWeek" aria-controls="accordionDaysWrapper" aria-expanded="false"><span data-icon="down"></span><span id="toggleAllWeekText">Развернуть неделю</span></button>
+        <p class="week-summary" id="weekSummaryInfo"></p>
+      </aside>
     </div>
-
-    <!-- БЛОК "СЕГОДНЯ" -->
-    <section class="today-section" id="todaySection">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">
-            <span>⚡</span>
-            <span id="todayHeaderDay">Сегодня</span>
-          </h2>
-          <span class="section-subtitle" id="todayHeaderDate">Загрузка даты...</span>
-        </div>
-      </div>
-
-      <!-- Сетка карточек пар на сегодня -->
-      <div class="pairs-grid" id="todayPairsContainer">
-        <!-- Карточки будут динамически сгенерированы app.js -->
-      </div>
-    </section>
-
-    <!-- СЕКЦИЯ "ВСЯ НЕДЕЛЯ" -->
-    <section class="week-accordion-section">
-      <div class="week-toggle-bar">
-        <button class="btn-accordion-toggle" id="btnToggleAllWeek">
-          <span>📅</span>
-          <span id="toggleAllWeekText">Развернуть всю неделю</span>
-          <span class="toggle-icon">▼</span>
-        </button>
-
-        <div class="section-subtitle" id="weekSummaryInfo">
-          Понедельник — Суббота
-        </div>
-      </div>
-
-      <!-- Карточки дней недели (Аккордеон) -->
-      <div class="accordion-days-wrapper collapsed" id="accordionDaysWrapper">
-        <!-- Генерируется динамически app.js для дней Пн-Сб -->
-      </div>
-    </section>
+    <footer class="app-footer"><span>ФИиИТ ДГУ</span><span>Учебный год 2026–2027</span></footer>
   </main>
-
-  <!-- МОДАЛЬНОЕ ОКНО ВЫБОРА КУРСА И ГРУППЫ -->
-  <div class="modal-backdrop" id="courseGroupModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>🎓</span>
-          <span>Выбор курса и группы</span>
-        </div>
-        <button class="btn-close-modal" id="btnCloseGroupModal">&times;</button>
+  <div class="overlay menu-backdrop" id="menuBackdrop">
+    <section class="dialog menu-dialog" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+      <div class="modal-header"><div><h2 id="menuTitle">UniSchedule</h2><p class="section-subtitle">ФИиИТ ДГУ</p></div><button class="btn-icon" data-close-overlay aria-label="Закрыть меню"><span data-icon="close"></span></button></div>
+      <div class="menu-items">
+        <button class="menu-item" id="menuItemToday"><span data-icon="calendar"></span><span>Расписание на сегодня</span></button>
+        <button class="menu-item" id="menuItemChangeGroup"><span data-icon="user"></span><span>Выбрать курс и группу</span></button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" id="menuItemUpload"><span data-icon="upload"></span><span>Загрузить Excel</span></button>
+        <button class="menu-item" id="menuItemExcel"><span data-icon="download"></span><span>Скачать Excel</span></button>
+        <button class="menu-item" id="menuItemPdf"><span data-icon="file"></span><span>Скачать PDF</span></button>
+        <div class="menu-divider"></div>
+        <button class="menu-item" id="menuItemTheme"><span id="menuThemeIcon" data-icon="sun"></span><span>Тема оформления</span><span class="menu-badge" id="menuThemeBadge">Тёмная</span></button>
+        <button class="menu-item" id="menuItemSettings"><span data-icon="settings"></span><span>Настройки семестра</span></button>
       </div>
-
-      <div class="modal-section-title">1. Выберите курс:</div>
-      <div class="courses-grid" id="modalCoursesGrid">
-        <button class="btn-choice active" data-course="1 КУРС">1 КУРС</button>
-        <button class="btn-choice" data-course="2 КУРС">2 КУРС</button>
-        <button class="btn-choice" data-course="3 КУРС">3 КУРС</button>
-        <button class="btn-choice" data-course="4 КУРС">4 КУРС</button>
-      </div>
-
-      <div class="modal-section-title">2. Выберите группу:</div>
-      <input type="text" class="groups-filter-input" id="groupSearchInput" placeholder="🔍 Поиск группы (РПИС, ИСиП...)...">
-      
-      <div class="groups-grid" id="modalGroupsGrid">
-        <!-- Заполняется динамически -->
-      </div>
-
-      <div style="margin-top: 14px; text-align: center;">
-        <button class="btn-today-pill" id="btnUsePreloaded" style="margin: 0 auto;">
-          <span>🔄</span> Использовать расписание ФИиИТ (2026-2027)
-        </button>
-      </div>
-    </div>
+    </section>
   </div>
-
-  <!-- МОДАЛЬНОЕ ОКНО "СЕГОДНЯ" -->
-  <div class="modal-backdrop" id="todayModal">
-    <div class="modal-card" style="max-width: 600px;">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>⚡</span>
-          <span id="modalTodayTitle">Расписание на сегодня</span>
-        </div>
-        <button class="btn-close-modal" id="btnCloseTodayModal">&times;</button>
-      </div>
-
-      <div id="modalTodayContent" class="pairs-grid" style="grid-template-columns: 1fr; margin-bottom: 0;">
-        <!-- Карточки пар на сегодня -->
-      </div>
-    </div>
+  <div class="overlay" id="exportBackdrop">
+    <section class="dialog export-dialog" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+      <div class="modal-header"><h2 id="exportTitle">Экспорт расписания</h2><button class="btn-icon" data-close-overlay aria-label="Закрыть экспорт"><span data-icon="close"></span></button></div>
+      <p class="dialog-description">Скачать расписание выбранной группы.</p>
+      <button class="export-option" id="btnExportExcel"><span data-icon="download"></span><span><strong>Excel</strong><small>Обе недели, файл .xlsx</small></span><span data-icon="chevron"></span></button>
+      <button class="export-option" id="btnExportPdf"><span data-icon="file"></span><span><strong>PDF</strong><small>Выбранная неделя, версия для печати</small></span><span data-icon="chevron"></span></button>
+    </section>
   </div>
-
-  <!-- МОДАЛЬНОЕ ОКНО "НАСТРОЙКИ" -->
-  <div class="modal-backdrop" id="settingsModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-title">
-          <span>⚙️</span>
-          <span>Настройки недель и семестра</span>
-        </div>
-        <button class="btn-close-modal" id="btnCloseSettingsModal">&times;</button>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-label-wrap">
-          <div class="setting-label">Опорная дата семестра</div>
-          <div class="setting-desc">Дата начала отсчета (понедельник недели)</div>
-        </div>
-        <input type="date" class="setting-input" id="settingBaseDate" value="2026-09-01">
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-label-wrap">
-          <div class="setting-label">Номер недели на опорную дату</div>
-          <div class="setting-desc">Какая неделя шла на выбранную дату</div>
-        </div>
-        <select class="setting-select" id="settingBaseWeek">
-          <option value="1">1 Неделя (Нечетная)</option>
-          <option value="2">2 Неделя (Четная)</option>
-        </select>
-      </div>
-
-      <div class="setting-row">
-        <div class="setting-label-wrap">
-          <div class="setting-label">Автоматический расчет</div>
-          <div class="setting-desc" id="settingAutoCalcResult">Текущая неделя: вычисляется...</div>
-        </div>
-        <button class="btn-today-pill" id="btnSaveSettings">Сохранить</button>
-      </div>
-
-      <div style="margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--glass-border-subtle); display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 12px; color: var(--text-muted);">UniSchedule v1.7 • ФИиИТ</span>
-        <button class="btn-action-sheet cancel" id="btnClearStorage" style="width: auto; padding: 6px 12px; font-size: 12px;">
-          Сбросить кеш
-        </button>
-      </div>
-    </div>
+  <div class="overlay" id="courseGroupModal">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
+      <div class="modal-header"><h2 id="groupModalTitle">Курс и группа</h2><button class="btn-icon" data-close-overlay aria-label="Закрыть выбор группы"><span data-icon="close"></span></button></div>
+      <p class="field-label">Курс</p><div class="courses-grid" id="modalCoursesGrid" role="group" aria-label="Выбор курса"></div>
+      <label class="field-label" for="groupSearchInput">Группа</label><input type="search" class="groups-filter-input" id="groupSearchInput" placeholder="Найти группу" autocomplete="off">
+      <div class="groups-grid" id="modalGroupsGrid"></div>
+      <button class="btn-secondary full-width" id="btnUsePreloaded"><span data-icon="refresh"></span>Вернуть расписание ФИиИТ 2026–2027</button>
+    </section>
   </div>
-
-  <!-- КОНТЕЙНЕР ДЛЯ ВСплывающих УВЕДОМЛЕНИЙ (TOASTS) -->
-  <div class="toast-container" id="toastContainer"></div>
-
-  <!-- СКРИПТЫ ПРИЛОЖЕНИЯ -->
-  <script src="parser.js"></script>
-  <script src="app.js"></script>
+  <div class="overlay" id="settingsModal">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-header"><h2 id="settingsTitle">Настройки семестра</h2><button class="btn-icon" data-close-overlay aria-label="Закрыть настройки"><span data-icon="close"></span></button></div>
+      <p class="dialog-description">Укажите дату, для которой известен номер недели. Остальные недели рассчитываются автоматически.</p>
+      <div class="setting-row"><label for="settingBaseDate">Опорная дата</label><input class="setting-input" type="date" id="settingBaseDate" required></div>
+      <div class="setting-row"><label for="settingBaseWeek">Неделя на эту дату</label><select class="setting-input" id="settingBaseWeek"><option value="1">1 неделя</option><option value="2">2 неделя</option></select></div>
+      <p class="settings-preview" id="settingAutoCalcResult"></p>
+      <button class="btn-primary full-width" id="btnSaveSettings">Сохранить настройки</button>
+      <div class="settings-bottom"><span>UniSchedule 2.0</span><button class="btn-text danger" id="btnClearStorage">Сбросить настройки</button></div>
+    </section>
+  </div>
+  <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+  <noscript><div class="noscript-message">Для просмотра расписания включите JavaScript в браузере.</div></noscript>
 </body>
 </html>

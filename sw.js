@@ -1,5 +1,5 @@
 /* Versioned offline bundle. Only this app's old caches are removed. */
-const CACHE_NAME = 'unischedule-fiiit-planner-v2.0';
+const CACHE_NAME = 'unischedule-fiiit-planner-v2.1';
 const STATIC_ASSETS = [
   './', './index.html', './styles.css', './parser.js', './app.js',
   './manifest.json', './icon.svg', './fonts/golos.css',

@@ -42,7 +42,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   const state = {
     data: DEFAULT_SCHEDULE, course: '4 КУРС', group: 'РПИС', theme: 'dark',
     settings: {baseDate: '2026-09-01', baseWeek: 1}, week: '1неделя',
-    day: todayName(), expanded: new Set(), pickerCourse: null,
+    day: todayName(), pickerCourse: null,
   };
   let lastDate = new Date().toDateString();
   let lastAutoWeek;
@@ -96,7 +96,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     $('btnThemeToggle').title = $('btnThemeToggle').getAttribute('aria-label');
     $('menuThemeBadge').textContent = state.theme === 'dark' ? 'Тёмная' : 'Светлая';
     $('menuThemeIcon').innerHTML = icon(next === 'light' ? 'sun' : 'moon');
-    document.querySelector('meta[name="theme-color"]').content = state.theme === 'dark' ? '#101a2b' : '#f3f6fa';
+    document.querySelector('meta[name="theme-color"]').content = state.theme === 'dark' ? '#192621' : '#ffffff';
     saveState();
   }
   function toggleTheme() { state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(); }
@@ -127,27 +127,31 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
   function typeLabel(type) { return type === 'лек' ? 'Лекция' : type === 'лаб' ? 'Лабораторная' : type === 'пр' ? 'Практика' : type || ''; }
   function lessonMarkup(lesson, subgroup = false) {
     const type = typeLabel(lesson.type);
-    return `<div class="lesson-content${subgroup ? ' subgroup-column' : ''}">
-      ${subgroup ? `<div class="subgroup-label">${lesson.subGroupNum ? `${escapeHtml(lesson.subGroupNum)} подгруппа` : 'Вся группа'}</div>` : ''}
-      <div class="lesson-heading"><h3 class="lesson-subject">${escapeHtml(lesson.subject || 'Занятие')}</h3>
-      ${lesson.room ? `<span class="lesson-room" title="Аудитория ${escapeHtml(lesson.room)}">${escapeHtml(lesson.room)}</span>` : ''}</div>
+    const subgroupNum = lesson.subGroupNum;
+    const room = lesson.room ? `<span class="lesson-room">${icon('pin')}<span><small>Аудитория</small><strong>${escapeHtml(lesson.room)}</strong></span></span>` : '';
+    return `<div class="lesson-content${subgroup ? ' subgroup-column' : ''}" ${subgroup ? `data-subgroup="${escapeHtml(subgroupNum || 'all')}"` : ''}>
+      ${subgroup ? `<div class="subgroup-label"><span class="subgroup-dot" aria-hidden="true"></span>${subgroupNum ? `${escapeHtml(subgroupNum)} подгруппа` : 'Вся группа'}</div>` : ''}
+      <div class="lesson-heading"><h3 class="lesson-subject">${escapeHtml(lesson.subject || 'Занятие')}</h3>${room}</div>
       <div class="lesson-meta">${type ? `<span class="badge-type">${escapeHtml(type)}</span>` : ''}
       ${lesson.teacher ? `<span class="teacher">${icon('user')}${escapeHtml(lesson.teacher)}</span>` : ''}</div></div>`;
   }
+
   function renderPair(pair, featured = false, statusLabel = '') {
     const time = timesFor(pair);
     const lessons = pair.subgroups?.length ? pair.subgroups : [{subject: pair.rawText || 'Занятие'}];
     const multiple = lessons.length > 1 || lessons.some(lesson => lesson.subGroupNum != null);
+    const badge = `<span class="pair-badge"><strong>${escapeHtml(pair.pairNum)}</strong> пара</span>`;
     const contents = `<div class="${multiple ? 'subgroups-container' : 'single-lesson'}">${lessons.map(lesson => lessonMarkup(lesson, multiple)).join('')}</div>`;
     if (featured) {
       return `<article class="next-lesson" data-pair-num="${escapeHtml(pair.pairNum)}">
-        <p class="next-status" id="livePairStatusText">${escapeHtml(statusLabel)}</p>
-        ${contents}<div class="next-footer">${icon('clock')}<span>${escapeHtml(time.label)}</span><span class="pair-number">Пара ${escapeHtml(pair.pairNum)}</span></div></article>`;
+        <div class="next-topline">${badge}<p class="next-status" id="livePairStatusText">${escapeHtml(statusLabel)}</p></div>
+        ${contents}<div class="next-footer">${icon('clock')}<span>${escapeHtml(time.label)}</span></div></article>`;
     }
     return `<article class="pair-card" data-pair-num="${escapeHtml(pair.pairNum)}">
-      <div class="time-rail"><time>${escapeHtml(time.start)}</time><span>${escapeHtml(time.end)}</span><span class="pair-number">Пара ${escapeHtml(pair.pairNum)}</span></div>
-      <div class="timeline-point" aria-hidden="true"></div><div class="lesson-panel">${contents}</div></article>`;
+      <div class="time-rail"><time>${escapeHtml(time.start)}</time><span>${escapeHtml(time.end)}</span></div>
+      <div class="timeline-point" aria-hidden="true"></div><div class="lesson-panel"><div class="pair-card-topline">${badge}</div>${contents}</div></article>`;
   }
+
   function renderDay() {
     const isActualWeek = state.week === currentWeek();
     const isToday = state.day === todayName() && isActualWeek;
@@ -168,29 +172,12 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       $('todayPairsContainer').innerHTML = pairs.filter(pair => pair !== status.featured).map(pair => renderPair(pair)).join('');
       $('dayEndInfo').textContent = status.live && !status.featured ? status.label : `Занятия до ${timesFor(pairs[pairs.length - 1]).end}`;
     }
-    $('mobileDays').innerHTML = DAYS.map((day, index) => `<button class="mobile-day${day === state.day ? ' active' : ''}" data-select-day="${day}" aria-label="${day}" aria-pressed="${day === state.day}">${SHORT_DAYS[index]}</button>`).join('');
+    $('daysNav').innerHTML = DAYS.map((day, index) => `<button class="day-tab${day === state.day ? ' active' : ''}" data-select-day="${day}" aria-label="${day}" aria-pressed="${day === state.day}"><span class="day-full">${day}</span><span class="day-short">${SHORT_DAYS[index]}</span></button>`).join('');
   }
-  function countLabel(count) {
-    if (!count) return 'Нет занятий';
-    const suffix = count % 10 === 1 && count % 100 !== 11 ? 'пара' : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20) ? 'пары' : 'пар';
-    return `${count} ${suffix}`;
-  }
-  function renderWeek() {
-    $('accordionDaysWrapper').innerHTML = DAYS.map((day, index) => {
-      const pairs = pairsFor(day);
-      const expanded = state.expanded.has(day);
-      return `<div class="day-accordion-card${day === state.day ? ' is-selected' : ''}${expanded ? ' open' : ''}">
-        <div class="day-accordion-header"><button class="day-select" data-select-day="${day}" aria-pressed="${day === state.day}"><span class="day-name">${day}</span><span class="day-count">${countLabel(pairs.length)}</span></button>
-        <button class="day-expand" data-expand-day="${day}" aria-label="${expanded ? 'Свернуть' : 'Развернуть'}: ${day}" aria-expanded="${expanded}" aria-controls="week-day-${index}">${icon('chevron')}</button></div>
-        <div class="day-accordion-body" id="week-day-${index}" ${expanded ? '' : 'hidden'}>${pairs.length ? pairs.map(pair => renderPair(pair)).join('') : '<p class="week-empty">В этот день занятий нет</p>'}</div></div>`;
-    }).join('');
-    const allOpen = DAYS.every(day => state.expanded.has(day));
-    $('toggleAllWeekText').textContent = allOpen ? 'Свернуть неделю' : 'Развернуть неделю';
-    $('btnToggleAllWeek').setAttribute('aria-expanded', String(allOpen));
-    $('btnToggleAllWeek').classList.toggle('expanded', allOpen);
-    const total = DAYS.reduce((count, day) => count + pairsFor(day).length, 0);
-    $('weekSummaryInfo').textContent = `${countLabel(total)} за неделю`;
-  }
+
+
+
+
   function renderHeader() {
     $('displayCourseName').textContent = state.course.toLowerCase();
     $('displayGroupName').textContent = state.group;
@@ -200,8 +187,8 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       button.setAttribute('aria-pressed', String(selected));
     });
   }
-  function renderAll() { renderHeader(); renderDay(); renderWeek(); saveState(); }
-  function selectDay(day) { if (DAYS.includes(day) || day === 'Воскресенье') { state.day = day; renderDay(); renderWeek(); } }
+  function renderAll() { renderHeader(); renderDay(); saveState(); }
+  function selectDay(day) { if (DAYS.includes(day) || day === 'Воскресенье') { state.day = day; renderDay(); } }
   function goToday() { state.day = todayName(); state.week = currentWeek(); renderAll(); closeOverlay(); }
 
   function closeOverlay() {
@@ -270,7 +257,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       const course = Object.keys(data?.courses || {}).find(key => Object.keys(data.courses[key].groups || {}).length);
       if (!course) throw new Error('В файле не найдены курсы и группы. Выберите таблицу расписания ФИиИТ.');
       state.data = data; state.course = course; state.group = Object.keys(data.courses[course].groups)[0];
-      state.expanded.clear(); renderAll(); openGroupPicker(); toast('Расписание загружено. Выберите группу.');
+      renderAll(); openGroupPicker(); toast('Расписание загружено. Выберите группу.');
     } catch (error) { toast(error.message || 'Не удалось прочитать файл. Проверьте формат Excel.', true); }
     finally { event.target.value = ''; }
   }
@@ -301,7 +288,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       const doc = new window.jspdf.jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
       doc.addFileToVFS('DejaVuSans.ttf', CYRILLIC_FONT_B64);
       doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
-      doc.setFont('DejaVuSans'); doc.setTextColor(23,43,70); doc.setFontSize(16);
+      doc.setFont('DejaVuSans'); doc.setTextColor(35,54,46); doc.setFontSize(16);
       doc.text('Расписание ФИиИТ ДГУ', 14, 19);
       doc.setFontSize(11); doc.text(`${state.course} / ${state.group}`, 14, 27);
       doc.setFontSize(9); doc.text(`${state.week === '1неделя' ? '1' : '2'} неделя`, 14, 34);
@@ -309,8 +296,8 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
         head:[['День','№','Время','П/Г','Дисциплина','Тип','Преподаватель','Ауд.']],
         body:exportRows(state.week, false),
         styles:{font:'DejaVuSans',fontStyle:'normal',fontSize:7.5,cellPadding:2,valign:'middle',overflow:'linebreak'},
-        headStyles:{fillColor:[40,85,217],textColor:[255,255,255],fontStyle:'normal'},
-        alternateRowStyles:{fillColor:[243,246,250]},
+        headStyles:{fillColor:[33,107,82],textColor:[255,255,255],fontStyle:'normal'},
+        alternateRowStyles:{fillColor:[244,247,245]},
         columnStyles:{0:{cellWidth:23},1:{cellWidth:10},2:{cellWidth:22},3:{cellWidth:16},4:{cellWidth:37},5:{cellWidth:19},6:{cellWidth:39},7:{cellWidth:16}}
       });
       doc.save(`Расписание_${state.course}_${state.group}_${state.week}.pdf`.replace(/\s+/g, '_'));
@@ -339,7 +326,7 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
     $('btnUsePreloaded').onclick = () => {
       state.data = DEFAULT_SCHEDULE;
       if (!state.data.courses[state.course]?.groups[state.group]) { state.course = '4 КУРС'; state.group = 'РПИС'; }
-      state.pickerCourse = state.course; state.expanded.clear(); renderAll(); renderGroupPicker(); toast('Стандартное расписание загружено');
+      state.pickerCourse = state.course; renderAll(); renderGroupPicker(); toast('Стандартное расписание загружено');
     };
     $('btnClearStorage').onclick = () => {
       if (confirm('Вернуть стандартное расписание и сбросить выбор группы и настройки семестра?')) {
@@ -351,23 +338,12 @@ const DEFAULT_SCHEDULE = {"courses": {"1 КУРС": {"groups": {"ИСИП": [{"w
       const button = event.target.closest('[data-week]');
       if (button) { state.week = button.dataset.week; renderAll(); }
     };
-    $('btnToggleAllWeek').onclick = () => {
-      state.expanded = DAYS.every(day => state.expanded.has(day)) ? new Set() : new Set(DAYS);
-      renderWeek();
-    };
     document.addEventListener('click', event => {
       const selected = event.target.closest('[data-select-day]');
       if (selected) {
-        const selector = selected.classList.contains('mobile-day') ? '.mobile-day' : '.day-select';
+        const selector = '.day-tab';
         selectDay(selected.dataset.selectDay);
         document.querySelector(`${selector}[data-select-day="${selected.dataset.selectDay}"]`)?.focus({preventScroll:true});
-      }
-      const expand = event.target.closest('[data-expand-day]');
-      if (expand) {
-        const day = expand.dataset.expandDay;
-        if (state.expanded.has(day)) state.expanded.delete(day); else state.expanded.add(day);
-        renderWeek();
-        document.querySelector(`[data-expand-day="${day}"]`)?.focus();
       }
       const course = event.target.closest('[data-course]');
       if (course) { state.pickerCourse = course.dataset.course; $('groupSearchInput').value = ''; renderGroupPicker(); document.querySelector(`[data-course="${state.pickerCourse}"]`)?.focus(); }

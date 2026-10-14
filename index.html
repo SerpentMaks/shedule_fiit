@@ -2,10 +2,10 @@
 <html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#101a2b">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=contain">
+  <meta name="theme-color" content="#192621">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="UniSchedule">
   <title>UniSchedule — Расписание ФИиИТ</title>
   <link rel="manifest" href="manifest.json">
@@ -16,6 +16,7 @@
     try {
       const theme = localStorage.getItem('fiiit_theme');
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#ffffff' : '#192621';
     } catch (_) {}
   </script>
   <script src="vendor/xlsx.full.min.js" defer></script>
@@ -51,7 +52,7 @@
         <button class="segmented-option" data-week="2неделя" aria-pressed="false">2 неделя</button>
       </div>
     </div>
-    <nav class="mobile-days" id="mobileDays" aria-label="Дни недели"></nav>
+    <nav class="days-nav" id="daysNav" aria-label="Дни недели"></nav>
     <div class="schedule-layout">
       <section class="day-section" aria-labelledby="todayHeaderDay">
         <div class="section-header"><div><h2 id="todayHeaderDay">Сегодня</h2><p class="section-subtitle" id="todayHeaderDate"></p></div><button class="btn-text" id="btnBackToday" hidden>Сегодня</button></div>
@@ -59,12 +60,6 @@
         <div class="pairs-grid" id="todayPairsContainer"></div>
         <p class="day-end-info" id="dayEndInfo"></p>
       </section>
-      <aside class="week-section" aria-labelledby="weekHeading">
-        <div class="section-header"><h2 id="weekHeading">Вся неделя</h2></div>
-        <div class="accordion-days-wrapper" id="accordionDaysWrapper"></div>
-        <button class="btn-accordion-toggle" id="btnToggleAllWeek" aria-controls="accordionDaysWrapper" aria-expanded="false"><span data-icon="down"></span><span id="toggleAllWeekText">Развернуть неделю</span></button>
-        <p class="week-summary" id="weekSummaryInfo"></p>
-      </aside>
     </div>
     <footer class="app-footer"><span>ФИиИТ ДГУ</span><span>Учебный год 2026–2027</span></footer>
   </main>
@@ -109,7 +104,7 @@
       <div class="setting-row"><label for="settingBaseWeek">Неделя на эту дату</label><select class="setting-input" id="settingBaseWeek"><option value="1">1 неделя</option><option value="2">2 неделя</option></select></div>
       <p class="settings-preview" id="settingAutoCalcResult"></p>
       <button class="btn-primary full-width" id="btnSaveSettings">Сохранить настройки</button>
-      <div class="settings-bottom"><span>UniSchedule 2.0</span><button class="btn-text danger" id="btnClearStorage">Сбросить настройки</button></div>
+      <div class="settings-bottom"><span>UniSchedule 2.1</span><button class="btn-text danger" id="btnClearStorage">Сбросить настройки</button></div>
     </section>
   </div>
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
